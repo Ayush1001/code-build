@@ -3,7 +3,7 @@ version: 0.2
 # env REPOSITORY_NAME should be defined on CodeBuild
 env:
   variables:
-    REPOSITORY_LOGIN: "207512942274.dkr.ecr.eu-west-2.amazonaws.com"
+    REPOSITORY_LOGIN: "<account-number>.dkr.ecr.eu-west-2.amazonaws.com"
 
 phases:
   pre_build:
