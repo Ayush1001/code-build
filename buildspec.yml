@@ -1,0 +1,37 @@
+version: 0.2
+
+# env REPOSITORY_NAME should be defined on CodeBuild
+env:
+  variables:
+    REPOSITORY_LOGIN: "207512942274.dkr.ecr.eu-west-2.amazonaws.com"
+
+phases:
+  pre_build:
+    commands:
+    - |
+      if [ -z "${REPOSITORY_NAME}" ]; then 
+        echo "Error: Variable REPOSITORY_NAME is empty"
+        exit 1
+      fi
+      if [ -z "${DOCKERFILE}" ]; then 
+        DOCKERFILE="Dockerfile"
+      fi
+    - REPOSITORY_URI=$REPOSITORY_LOGIN/$REPOSITORY_NAME
+    - echo Logging in to Amazon $REPOSITORY_URI
+    - aws --version
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPOSITORY_LOGIN
+    - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+    - IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+    - echo Build the Docker image started on `date`
+    - docker build --file $DOCKERFILE -t $REPOSITORY_URI:latest .
+    - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+    - echo Build completed on `date`
+    - echo Pushing the Docker images...
+    - docker push $REPOSITORY_URI:latest
+    - docker push $REPOSITORY_URI:$IMAGE_TAG
+    - echo Writing image definitions file...
+    - printf '[{"name":"%s","imageUri":"%s"}]' $REPOSITORY_NAME $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+artifacts:
+  files: imagedefinitions.json
